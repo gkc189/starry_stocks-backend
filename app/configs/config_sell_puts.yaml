@@ -1,0 +1,40 @@
+# =========================
+# Option-level filters
+# =========================
+target_dte_min: 0
+target_dte_max: 45
+
+delta_min: -0.35
+delta_max: -0.15
+
+
+# =========================
+# DTE bucketing & strategy
+# =========================
+dte:
+  # Hard cutoff: ignore anything above this
+  max_dte: 7
+
+  # Buckets are ordered and inclusive
+  buckets:
+    - [0, 0]     # 0 DTE
+    - [1, 1]     # 1 DTE
+    - [2, 3]     # 2–3 DTE
+    - [4, 5]     # 4–5 DTE
+    - [6, 10]    # 6–10 DTE (ignored if max_dte = 5)
+    - [11, 20]   # 11–20 DTE
+    - [21, 45]   # 21–45 DTE
+
+# ========================
+# Scoring Configuration
+# ========================
+scoring:
+  premium_per_day_weight: 1.0
+  yield_pct_weight: 50.0
+  liquidity_weight: 0.5
+  price_range_weight: 10.0
+
+  price_range_lookback_days: 63
+
+  # Optional future toggles
+  normalize_scores: true

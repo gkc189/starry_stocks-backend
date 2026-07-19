@@ -1,0 +1,25 @@
+# =========================
+# Put Credit Spread Configuration
+# =========================
+
+# Maximum number of spreads to evaluate per ticker
+max_spreads_per_ticker: 5
+
+# Delta range for short put (OTM puts)
+delta_min: 0.20
+delta_max: 0.35
+
+# Spread width range (strike difference)
+spread_min: 2.0
+spread_max: 5.0
+
+# Scoring configuration
+scoring:
+  target_credit_ratio: 0.33
+  price_range_lookback_days: 63
+  weight_delta: 0.35
+  weight_credit: 0.25
+  weight_spread: 0.20
+  weight_probability: 0.10
+  weight_iv: 0.05
+  weight_liquidity: 0.05

@@ -1,0 +1,83 @@
+from dataclasses import asdict
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from starry_stocks_common.engine import (
+    STRATEGIES,
+    build_scoring_explanation,
+    run_put_credit_spread_scan,
+    run_sell_puts_scan,
+)
+
+from app.config import get_put_credit_spread_configs, get_sell_puts_config, get_universe
+from app.schemas import (
+    ExplainOut,
+    PutCreditSpreadScanOut,
+    ScanRequest,
+    SellPutsScanOut,
+    StrategyOut,
+    UniverseOut,
+)
+
+app = FastAPI(title='Starry Stocks Scanner API')
+
+# Permissive CORS for local development: the webapp is a static page served
+# from a different origin/port than this API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
+_STRATEGY_IDS = {strategy.id for strategy in STRATEGIES}
+
+
+@app.get('/api/health')
+def health():
+    return {'status': 'ok'}
+
+
+@app.get('/api/strategies', response_model=list[StrategyOut])
+def list_strategies():
+    return [asdict(strategy) for strategy in STRATEGIES]
+
+
+@app.get('/api/universe', response_model=UniverseOut)
+def universe():
+    return {'tickers': get_universe()}
+
+
+@app.get('/api/strategies/{strategy_id}/explain', response_model=ExplainOut)
+def explain_strategy(strategy_id: str):
+    if strategy_id not in _STRATEGY_IDS:
+        raise HTTPException(status_code=404, detail=f"Unknown strategy: {strategy_id}")
+
+    if strategy_id == 'sell-puts':
+        config = get_sell_puts_config()
+    elif strategy_id == 'put-credit-spread':
+        config, _ = get_put_credit_spread_configs()
+    else:
+        return {'strategy': strategy_id, 'components': []}
+
+    components = build_scoring_explanation(config, strategy_id)
+    return {'strategy': strategy_id, 'components': [asdict(c) for c in components]}
+
+
+@app.post('/api/scan/sell-puts', response_model=SellPutsScanOut)
+def scan_sell_puts(payload: ScanRequest):
+    config = get_sell_puts_config(payload.tickers)
+    result = run_sell_puts_scan(config)
+    return asdict(result)
+
+
+@app.post('/api/scan/put-credit-spread', response_model=PutCreditSpreadScanOut)
+def scan_put_credit_spread(payload: ScanRequest):
+    config, put_spreads_config = get_put_credit_spread_configs(payload.tickers)
+    result = run_put_credit_spread_scan(config, put_spreads_config)
+    return asdict(result)
+
+
+@app.post('/api/scan/call-credit-spread')
+def scan_call_credit_spread(payload: ScanRequest):
+    raise HTTPException(status_code=501, detail='Call credit spread strategy is not yet implemented.')
