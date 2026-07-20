@@ -6,13 +6,26 @@ from starry_stocks_common.config_loader import load_config, save_config
 CONFIG_DIR = Path(__file__).parent / 'configs'
 
 
-def get_universe() -> list[str]:
-    config = load_config(str(CONFIG_DIR / 'config.yaml'))
-    return config.get('search_set', [])
+STRATEGY_CONFIG_FILENAMES: dict[str, str] = {
+    'sell-puts': 'config_sell_puts.yaml',
+    'put-credit-spread': 'config_put_spreads.yaml',
+}
 
 
-def set_universe(tickers: list[str]) -> list[str]:
-    config_path = str(CONFIG_DIR / 'config.yaml')
+def get_strategy_universe(strategy_id: str) -> list[str]:
+    """
+    Returns the search-set for a strategy: its own config file's search_set if
+    present, else the shared default from config.yaml.
+    """
+    filename = STRATEGY_CONFIG_FILENAMES[strategy_id]
+    base_config = load_config(str(CONFIG_DIR / 'config.yaml'))
+    strategy_config = load_config(str(CONFIG_DIR / filename))
+    return strategy_config.get('search_set', base_config.get('search_set', []))
+
+
+def set_strategy_universe(strategy_id: str, tickers: list[str]) -> list[str]:
+    """Persists `tickers` as the search_set in the strategy's own config file."""
+    config_path = str(CONFIG_DIR / STRATEGY_CONFIG_FILENAMES[strategy_id])
     config = load_config(config_path)
     config['search_set'] = tickers
     save_config(config, config_path)

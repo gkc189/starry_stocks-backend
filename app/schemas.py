@@ -14,11 +14,12 @@ class SecurityOut(BaseModel):
     type: Optional[str] = None
 
 
-class UniverseOut(BaseModel):
+class StrategyUniverseOut(BaseModel):
+    strategy: str
     securities: list[SecurityOut]
 
 
-class UpdateUniverseRequest(BaseModel):
+class UpdateStrategyUniverseRequest(BaseModel):
     tickers: list[str]
 
 

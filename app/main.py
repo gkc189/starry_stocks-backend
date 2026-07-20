@@ -11,7 +11,13 @@ from starry_stocks_common.engine import (
 )
 from starry_stocks_common.market_data import suggest_index_ticker
 
-from app.config import get_put_credit_spread_configs, get_sell_puts_config, get_universe, set_universe
+from app.config import (
+    STRATEGY_CONFIG_FILENAMES,
+    get_put_credit_spread_configs,
+    get_sell_puts_config,
+    get_strategy_universe,
+    set_strategy_universe,
+)
 from app.schemas import (
     ExplainOut,
     PutCreditSpreadScanOut,
@@ -20,8 +26,8 @@ from app.schemas import (
     SecurityTypesRequest,
     SellPutsScanOut,
     StrategyOut,
-    UniverseOut,
-    UpdateUniverseRequest,
+    StrategyUniverseOut,
+    UpdateStrategyUniverseRequest,
 )
 
 app = FastAPI(title='Starry Stocks Scanner API')
@@ -48,20 +54,33 @@ def list_strategies():
     return [asdict(strategy) for strategy in STRATEGIES]
 
 
-def _universe_out(tickers: list[str]) -> dict:
+def _universe_out(strategy_id: str, tickers: list[str]) -> dict:
     types = get_security_types(tickers)
-    return {'securities': [{'ticker': ticker, 'type': types.get(ticker)} for ticker in tickers]}
+    return {
+        'strategy': strategy_id,
+        'securities': [{'ticker': ticker, 'type': types.get(ticker)} for ticker in tickers],
+    }
 
 
-@app.get('/api/universe', response_model=UniverseOut)
-def universe():
-    return _universe_out(get_universe())
+def _require_strategy_universe_support(strategy_id: str) -> None:
+    if strategy_id in STRATEGY_CONFIG_FILENAMES:
+        return
+    if strategy_id in _STRATEGY_IDS:
+        raise HTTPException(status_code=501, detail=f"No search-set config for strategy: {strategy_id}")
+    raise HTTPException(status_code=404, detail=f"Unknown strategy: {strategy_id}")
 
 
-@app.put('/api/universe', response_model=UniverseOut)
-def update_universe(payload: UpdateUniverseRequest):
-    tickers = set_universe(payload.tickers)
-    return _universe_out(tickers)
+@app.get('/api/strategies/{strategy_id}/universe', response_model=StrategyUniverseOut)
+def strategy_universe(strategy_id: str):
+    _require_strategy_universe_support(strategy_id)
+    return _universe_out(strategy_id, get_strategy_universe(strategy_id))
+
+
+@app.put('/api/strategies/{strategy_id}/universe', response_model=StrategyUniverseOut)
+def update_strategy_universe(strategy_id: str, payload: UpdateStrategyUniverseRequest):
+    _require_strategy_universe_support(strategy_id)
+    tickers = set_strategy_universe(strategy_id, payload.tickers)
+    return _universe_out(strategy_id, tickers)
 
 
 @app.post('/api/securities/types', response_model=SecurityTypesOut)
