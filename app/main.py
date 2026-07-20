@@ -5,15 +5,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from starry_stocks_common.engine import (
     STRATEGIES,
     build_scoring_explanation,
+    get_security_types,
     run_put_credit_spread_scan,
     run_sell_puts_scan,
 )
+from starry_stocks_common.market_data import suggest_index_ticker
 
 from app.config import get_put_credit_spread_configs, get_sell_puts_config, get_universe
 from app.schemas import (
     ExplainOut,
     PutCreditSpreadScanOut,
     ScanRequest,
+    SecurityTypesOut,
+    SecurityTypesRequest,
     SellPutsScanOut,
     StrategyOut,
     UniverseOut,
@@ -45,7 +49,19 @@ def list_strategies():
 
 @app.get('/api/universe', response_model=UniverseOut)
 def universe():
-    return {'tickers': get_universe()}
+    tickers = get_universe()
+    types = get_security_types(tickers)
+    return {'securities': [{'ticker': ticker, 'type': types.get(ticker)} for ticker in tickers]}
+
+
+@app.post('/api/securities/types', response_model=SecurityTypesOut)
+def security_types(payload: SecurityTypesRequest):
+    suggested_aliases = {
+        ticker: alias
+        for ticker in payload.tickers
+        if (alias := suggest_index_ticker(ticker)) is not None
+    }
+    return {'types': get_security_types(payload.tickers), 'suggested_aliases': suggested_aliases}
 
 
 @app.get('/api/strategies/{strategy_id}/explain', response_model=ExplainOut)

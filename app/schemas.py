@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StrategyOut(BaseModel):
@@ -9,12 +9,26 @@ class StrategyOut(BaseModel):
     available: bool
 
 
+class SecurityOut(BaseModel):
+    ticker: str
+    type: Optional[str] = None
+
+
 class UniverseOut(BaseModel):
-    tickers: list[str]
+    securities: list[SecurityOut]
 
 
 class ScanRequest(BaseModel):
     tickers: Optional[list[str]] = None
+
+
+class SecurityTypesRequest(BaseModel):
+    tickers: list[str]
+
+
+class SecurityTypesOut(BaseModel):
+    types: dict[str, Optional[str]]
+    suggested_aliases: dict[str, str] = Field(default_factory=dict)
 
 
 class ScannedStockOut(BaseModel):
