@@ -11,7 +11,7 @@ from starry_stocks_common.engine import (
 )
 from starry_stocks_common.market_data import suggest_index_ticker
 
-from app.config import get_put_credit_spread_configs, get_sell_puts_config, get_universe
+from app.config import get_put_credit_spread_configs, get_sell_puts_config, get_universe, set_universe
 from app.schemas import (
     ExplainOut,
     PutCreditSpreadScanOut,
@@ -21,6 +21,7 @@ from app.schemas import (
     SellPutsScanOut,
     StrategyOut,
     UniverseOut,
+    UpdateUniverseRequest,
 )
 
 app = FastAPI(title='Starry Stocks Scanner API')
@@ -47,11 +48,20 @@ def list_strategies():
     return [asdict(strategy) for strategy in STRATEGIES]
 
 
-@app.get('/api/universe', response_model=UniverseOut)
-def universe():
-    tickers = get_universe()
+def _universe_out(tickers: list[str]) -> dict:
     types = get_security_types(tickers)
     return {'securities': [{'ticker': ticker, 'type': types.get(ticker)} for ticker in tickers]}
+
+
+@app.get('/api/universe', response_model=UniverseOut)
+def universe():
+    return _universe_out(get_universe())
+
+
+@app.put('/api/universe', response_model=UniverseOut)
+def update_universe(payload: UpdateUniverseRequest):
+    tickers = set_universe(payload.tickers)
+    return _universe_out(tickers)
 
 
 @app.post('/api/securities/types', response_model=SecurityTypesOut)

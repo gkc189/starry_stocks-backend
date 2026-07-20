@@ -18,6 +18,10 @@ class UniverseOut(BaseModel):
     securities: list[SecurityOut]
 
 
+class UpdateUniverseRequest(BaseModel):
+    tickers: list[str]
+
+
 class ScanRequest(BaseModel):
     tickers: Optional[list[str]] = None
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from starry_stocks_common.config_loader import load_config
+from starry_stocks_common.config_loader import load_config, save_config
 
 CONFIG_DIR = Path(__file__).parent / 'configs'
 
@@ -9,6 +9,14 @@ CONFIG_DIR = Path(__file__).parent / 'configs'
 def get_universe() -> list[str]:
     config = load_config(str(CONFIG_DIR / 'config.yaml'))
     return config.get('search_set', [])
+
+
+def set_universe(tickers: list[str]) -> list[str]:
+    config_path = str(CONFIG_DIR / 'config.yaml')
+    config = load_config(config_path)
+    config['search_set'] = tickers
+    save_config(config, config_path)
+    return tickers
 
 
 def get_sell_puts_config(tickers: Optional[list[str]] = None) -> dict:

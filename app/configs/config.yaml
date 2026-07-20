@@ -1,23 +1,16 @@
-# =========================
-# Universe of symbols
-# =========================
 search_set:
-  - SPY
-  - QQQ
-  - IWM
-  - SLV
-  - SOFI
-  - COST
-  - WMT
-  - JPM
-  - GOOGL
-  - AMZN
-  - XOM
-  - AAPL
-  - MSFT
-
-# =========================
-# Stock-level screening
-# (used earlier / future use)
-# =========================
+- SPY
+- QQQ
+- IWM
+- SLV
+- SOFI
+- COST
+- WMT
+- JPM
+- GOOGL
+- AMZN
+- XOM
+- AAPL
+- MSFT
+- ^XSP
 min_iv_rank: 50
