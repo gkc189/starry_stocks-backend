@@ -1,3 +1,6 @@
+selected_configs:
+  sell-puts: Daily Driver 1
+  put-credit-spread: Default-Config
 search_set:
 - SPY
 - QQQ

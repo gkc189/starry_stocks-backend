@@ -1,0 +1,25 @@
+name: Default-Config
+target_dte_min: 0
+target_dte_max: 45
+delta_min: -0.35
+delta_max: -0.15
+dte:
+  max_dte: 7
+  buckets:
+  - - 0
+    - 0
+  - - 1
+    - 5
+  - - 6
+    - 10
+  - - 11
+    - 20
+  - - 21
+    - 45
+scoring:
+  premium_per_day_weight: 1.0
+  yield_pct_weight: 50.0
+  liquidity_weight: 0.5
+  price_range_weight: 10.0
+  price_range_lookback_days: 63
+  normalize_scores: true

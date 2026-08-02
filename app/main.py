@@ -13,24 +13,32 @@ from starry_stocks_common.engine import (
 from starry_stocks_common.market_data import suggest_index_ticker
 
 from app.config import (
-    STRATEGY_CONFIG_FILENAMES,
+    STRATEGY_CONFIG_DIRS,
+    create_strategy_config,
+    delete_strategy_config,
     get_dte_buckets,
     get_put_credit_spread_configs,
     get_put_credit_spread_max_dte,
+    get_selected_config_name,
     get_sell_puts_config,
     get_strategy_universe,
+    list_strategy_configs,
     set_dte_buckets,
     set_put_credit_spread_max_dte,
+    set_selected_config_name,
     set_strategy_universe,
 )
 from app.schemas import (
+    CreateStrategyConfigRequest,
     DteBucketsOut,
     ExplainOut,
     MaxDteOut,
     PutCreditSpreadScanOut,
     SecurityTypesOut,
     SecurityTypesRequest,
+    SelectStrategyConfigRequest,
     SellPutsScanOut,
+    StrategyConfigsOut,
     StrategyOut,
     StrategyUniverseOut,
     UpdateDteBucketsRequest,
@@ -70,25 +78,68 @@ def _universe_out(strategy_id: str, tickers: list[str]) -> dict:
     }
 
 
-def _require_strategy_universe_support(strategy_id: str) -> None:
-    if strategy_id in STRATEGY_CONFIG_FILENAMES:
+def _require_configurable_strategy(strategy_id: str) -> None:
+    if strategy_id in STRATEGY_CONFIG_DIRS:
         return
     if strategy_id in _STRATEGY_IDS:
-        raise HTTPException(status_code=501, detail=f"No search-set config for strategy: {strategy_id}")
+        raise HTTPException(status_code=501, detail=f"No config support for strategy: {strategy_id}")
     raise HTTPException(status_code=404, detail=f"Unknown strategy: {strategy_id}")
+
+
+def _strategy_configs_out(strategy_id: str) -> dict:
+    return {
+        'strategy': strategy_id,
+        'configs': list_strategy_configs(strategy_id),
+        'selected': get_selected_config_name(strategy_id),
+    }
 
 
 @app.get('/api/strategies/{strategy_id}/universe', response_model=StrategyUniverseOut)
 def strategy_universe(strategy_id: str):
-    _require_strategy_universe_support(strategy_id)
+    _require_configurable_strategy(strategy_id)
     return _universe_out(strategy_id, get_strategy_universe(strategy_id))
 
 
 @app.put('/api/strategies/{strategy_id}/universe', response_model=StrategyUniverseOut)
 def update_strategy_universe(strategy_id: str, payload: UpdateStrategyUniverseRequest):
-    _require_strategy_universe_support(strategy_id)
+    _require_configurable_strategy(strategy_id)
     tickers = set_strategy_universe(strategy_id, payload.tickers)
     return _universe_out(strategy_id, tickers)
+
+
+@app.get('/api/strategies/{strategy_id}/configs', response_model=StrategyConfigsOut)
+def strategy_configs(strategy_id: str):
+    _require_configurable_strategy(strategy_id)
+    return _strategy_configs_out(strategy_id)
+
+
+@app.post('/api/strategies/{strategy_id}/configs', response_model=StrategyConfigsOut)
+def add_strategy_config(strategy_id: str, payload: CreateStrategyConfigRequest):
+    _require_configurable_strategy(strategy_id)
+    try:
+        create_strategy_config(strategy_id, payload.name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return _strategy_configs_out(strategy_id)
+
+
+@app.delete('/api/strategies/{strategy_id}/configs/{config_name}', response_model=StrategyConfigsOut)
+def remove_strategy_config(strategy_id: str, config_name: str):
+    _require_configurable_strategy(strategy_id)
+    try:
+        delete_strategy_config(strategy_id, config_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return _strategy_configs_out(strategy_id)
+
+
+@app.put('/api/strategies/{strategy_id}/selected-config', response_model=StrategyConfigsOut)
+def select_strategy_config(strategy_id: str, payload: SelectStrategyConfigRequest):
+    _require_configurable_strategy(strategy_id)
+    if payload.name not in list_strategy_configs(strategy_id):
+        raise HTTPException(status_code=404, detail=f"No config named '{payload.name}' for strategy: {strategy_id}")
+    set_selected_config_name(strategy_id, payload.name)
+    return _strategy_configs_out(strategy_id)
 
 
 @app.get('/api/strategies/sell-puts/dte-buckets', response_model=DteBucketsOut)

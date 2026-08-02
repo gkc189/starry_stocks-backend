@@ -39,6 +39,20 @@ class UpdateMaxDteRequest(BaseModel):
     max_dte: int
 
 
+class StrategyConfigsOut(BaseModel):
+    strategy: str
+    configs: list[str]
+    selected: str
+
+
+class CreateStrategyConfigRequest(BaseModel):
+    name: str
+
+
+class SelectStrategyConfigRequest(BaseModel):
+    name: str
+
+
 class SecurityTypesRequest(BaseModel):
     tickers: list[str]
 
