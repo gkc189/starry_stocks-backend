@@ -8,25 +8,33 @@ from starry_stocks_common.engine import (
     get_security_types,
     run_put_credit_spread_scan,
     run_sell_puts_scan,
+    validate_dte_buckets,
 )
 from starry_stocks_common.market_data import suggest_index_ticker
 
 from app.config import (
     STRATEGY_CONFIG_FILENAMES,
+    get_dte_buckets,
     get_put_credit_spread_configs,
+    get_put_credit_spread_max_dte,
     get_sell_puts_config,
     get_strategy_universe,
+    set_dte_buckets,
+    set_put_credit_spread_max_dte,
     set_strategy_universe,
 )
 from app.schemas import (
+    DteBucketsOut,
     ExplainOut,
+    MaxDteOut,
     PutCreditSpreadScanOut,
-    ScanRequest,
     SecurityTypesOut,
     SecurityTypesRequest,
     SellPutsScanOut,
     StrategyOut,
     StrategyUniverseOut,
+    UpdateDteBucketsRequest,
+    UpdateMaxDteRequest,
     UpdateStrategyUniverseRequest,
 )
 
@@ -83,6 +91,34 @@ def update_strategy_universe(strategy_id: str, payload: UpdateStrategyUniverseRe
     return _universe_out(strategy_id, tickers)
 
 
+@app.get('/api/strategies/sell-puts/dte-buckets', response_model=DteBucketsOut)
+def dte_buckets():
+    return {'buckets': get_dte_buckets()}
+
+
+@app.put('/api/strategies/sell-puts/dte-buckets', response_model=DteBucketsOut)
+def update_dte_buckets(payload: UpdateDteBucketsRequest):
+    try:
+        validate_dte_buckets(payload.buckets)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return {'buckets': set_dte_buckets(payload.buckets)}
+
+
+@app.get('/api/strategies/put-credit-spread/max-dte', response_model=MaxDteOut)
+def put_credit_spread_max_dte():
+    return {'max_dte': get_put_credit_spread_max_dte()}
+
+
+@app.put('/api/strategies/put-credit-spread/max-dte', response_model=MaxDteOut)
+def update_put_credit_spread_max_dte(payload: UpdateMaxDteRequest):
+    if payload.max_dte < 1:
+        raise HTTPException(status_code=400, detail='max_dte must be >= 1.')
+
+    return {'max_dte': set_put_credit_spread_max_dte(payload.max_dte)}
+
+
 @app.post('/api/securities/types', response_model=SecurityTypesOut)
 def security_types(payload: SecurityTypesRequest):
     suggested_aliases = {
@@ -110,19 +146,19 @@ def explain_strategy(strategy_id: str):
 
 
 @app.post('/api/scan/sell-puts', response_model=SellPutsScanOut)
-def scan_sell_puts(payload: ScanRequest):
-    config = get_sell_puts_config(payload.tickers)
+def scan_sell_puts():
+    config = get_sell_puts_config()
     result = run_sell_puts_scan(config)
     return asdict(result)
 
 
 @app.post('/api/scan/put-credit-spread', response_model=PutCreditSpreadScanOut)
-def scan_put_credit_spread(payload: ScanRequest):
-    config, put_spreads_config = get_put_credit_spread_configs(payload.tickers)
+def scan_put_credit_spread():
+    config, put_spreads_config = get_put_credit_spread_configs()
     result = run_put_credit_spread_scan(config, put_spreads_config)
     return asdict(result)
 
 
 @app.post('/api/scan/call-credit-spread')
-def scan_call_credit_spread(payload: ScanRequest):
+def scan_call_credit_spread():
     raise HTTPException(status_code=501, detail='Call credit spread strategy is not yet implemented.')

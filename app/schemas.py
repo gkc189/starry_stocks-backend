@@ -23,8 +23,20 @@ class UpdateStrategyUniverseRequest(BaseModel):
     tickers: list[str]
 
 
-class ScanRequest(BaseModel):
-    tickers: Optional[list[str]] = None
+class DteBucketsOut(BaseModel):
+    buckets: list[list[int]]
+
+
+class UpdateDteBucketsRequest(BaseModel):
+    buckets: list[list[int]]
+
+
+class MaxDteOut(BaseModel):
+    max_dte: int
+
+
+class UpdateMaxDteRequest(BaseModel):
+    max_dte: int
 
 
 class SecurityTypesRequest(BaseModel):
