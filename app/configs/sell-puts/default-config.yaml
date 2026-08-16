@@ -6,7 +6,7 @@ filters:
     max: 1.0
   risk-reward: 0.01
 dte:
-  max_dte: 7
+  max_dte: 45
   buckets:
   - - 0
     - 0

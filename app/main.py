@@ -142,19 +142,21 @@ def select_strategy_config(strategy_id: str, payload: SelectStrategyConfigReques
     return _strategy_configs_out(strategy_id)
 
 
-@app.get('/api/strategies/sell-puts/dte-buckets', response_model=DteBucketsOut)
-def dte_buckets():
-    return {'buckets': get_dte_buckets()}
+@app.get('/api/strategies/{strategy_id}/dte-buckets', response_model=DteBucketsOut)
+def dte_buckets(strategy_id: str):
+    _require_configurable_strategy(strategy_id)
+    return {'buckets': get_dte_buckets(strategy_id)}
 
 
-@app.put('/api/strategies/sell-puts/dte-buckets', response_model=DteBucketsOut)
-def update_dte_buckets(payload: UpdateDteBucketsRequest):
+@app.put('/api/strategies/{strategy_id}/dte-buckets', response_model=DteBucketsOut)
+def update_dte_buckets(strategy_id: str, payload: UpdateDteBucketsRequest):
+    _require_configurable_strategy(strategy_id)
     try:
         validate_dte_buckets(payload.buckets)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    return {'buckets': set_dte_buckets(payload.buckets)}
+    return {'buckets': set_dte_buckets(strategy_id, payload.buckets)}
 
 
 @app.get('/api/strategies/{strategy_id}/filters', response_model=StrategyFiltersOut)

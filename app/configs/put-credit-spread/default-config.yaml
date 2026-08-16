@@ -27,3 +27,8 @@ search_set:
 - SPYI
 - MSFT
 - ^SPX
+dte:
+  buckets:
+  - - 0
+    - 60
+  max_dte: 60

@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 
 from starry_stocks_common.config_loader import load_config, save_config
-from starry_stocks_common.engine import resolve_sell_puts_max_dte
+from starry_stocks_common.engine import DEFAULT_PUT_CREDIT_SPREAD_DTE_BUCKETS, resolve_max_dte
 
 CONFIG_DIR = Path(__file__).parent / 'configs'
 GENERAL_CONFIG_PATH = CONFIG_DIR / 'config.yaml'
@@ -129,19 +129,28 @@ def set_strategy_universe(strategy_id: str, tickers: list[str]) -> list[str]:
     return tickers
 
 
-def get_dte_buckets() -> list[list[int]]:
-    config = load_config(str(_selected_config_path('sell-puts')))
-    return config.get('dte', {}).get('buckets', [])
+# sell-puts configs are always seeded with real buckets already, so an empty
+# fallback there is inert; put-credit-spread configs may not have any yet, so
+# fall back to the window it's always implicitly used (0-60 DTE).
+DEFAULT_DTE_BUCKETS: dict[str, list[list[int]]] = {
+    'sell-puts': [],
+    'put-credit-spread': DEFAULT_PUT_CREDIT_SPREAD_DTE_BUCKETS,
+}
 
 
-def set_dte_buckets(buckets: list[list[int]]) -> list[list[int]]:
-    config_path = str(_selected_config_path('sell-puts'))
+def get_dte_buckets(strategy_id: str) -> list[list[int]]:
+    config = load_config(str(_selected_config_path(strategy_id)))
+    return config.get('dte', {}).get('buckets') or DEFAULT_DTE_BUCKETS.get(strategy_id, [])
+
+
+def set_dte_buckets(strategy_id: str, buckets: list[list[int]]) -> list[list[int]]:
+    config_path = str(_selected_config_path(strategy_id))
     config = load_config(config_path)
     dte_config = config.setdefault('dte', {})
     dte_config['buckets'] = buckets
-    # max_dte is derived from the buckets at scan time (see resolve_sell_puts_max_dte);
+    # max_dte is derived from the buckets at scan time (see resolve_max_dte);
     # kept in sync here purely so the persisted file doesn't show a stale value.
-    dte_config['max_dte'] = resolve_sell_puts_max_dte(buckets)
+    dte_config['max_dte'] = resolve_max_dte(buckets)
     save_config(config, config_path)
     return buckets
 
