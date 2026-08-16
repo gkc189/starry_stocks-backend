@@ -18,31 +18,31 @@ from app.config import (
     delete_strategy_config,
     get_dte_buckets,
     get_put_credit_spread_configs,
-    get_put_credit_spread_max_dte,
     get_selected_config_name,
     get_sell_puts_config,
+    get_strategy_filters,
     get_strategy_universe,
     list_strategy_configs,
     set_dte_buckets,
-    set_put_credit_spread_max_dte,
     set_selected_config_name,
+    set_strategy_filters,
     set_strategy_universe,
 )
 from app.schemas import (
     CreateStrategyConfigRequest,
     DteBucketsOut,
     ExplainOut,
-    MaxDteOut,
     PutCreditSpreadScanOut,
     SecurityTypesOut,
     SecurityTypesRequest,
     SelectStrategyConfigRequest,
     SellPutsScanOut,
     StrategyConfigsOut,
+    StrategyFiltersOut,
     StrategyOut,
     StrategyUniverseOut,
     UpdateDteBucketsRequest,
-    UpdateMaxDteRequest,
+    UpdateStrategyFiltersRequest,
     UpdateStrategyUniverseRequest,
 )
 
@@ -157,17 +157,22 @@ def update_dte_buckets(payload: UpdateDteBucketsRequest):
     return {'buckets': set_dte_buckets(payload.buckets)}
 
 
-@app.get('/api/strategies/put-credit-spread/max-dte', response_model=MaxDteOut)
-def put_credit_spread_max_dte():
-    return {'max_dte': get_put_credit_spread_max_dte()}
+@app.get('/api/strategies/{strategy_id}/filters', response_model=StrategyFiltersOut)
+def strategy_filters(strategy_id: str):
+    _require_configurable_strategy(strategy_id)
+    return {'strategy': strategy_id, **get_strategy_filters(strategy_id)}
 
 
-@app.put('/api/strategies/put-credit-spread/max-dte', response_model=MaxDteOut)
-def update_put_credit_spread_max_dte(payload: UpdateMaxDteRequest):
-    if payload.max_dte < 1:
-        raise HTTPException(status_code=400, detail='max_dte must be >= 1.')
-
-    return {'max_dte': set_put_credit_spread_max_dte(payload.max_dte)}
+@app.put('/api/strategies/{strategy_id}/filters', response_model=StrategyFiltersOut)
+def update_strategy_filters(strategy_id: str, payload: UpdateStrategyFiltersRequest):
+    _require_configurable_strategy(strategy_id)
+    result = set_strategy_filters(
+        strategy_id,
+        use_scoring=payload.use_scoring,
+        delta_range={'min': payload.delta_range.min, 'max': payload.delta_range.max},
+        risk_reward_min=payload.risk_reward_min,
+    )
+    return {'strategy': strategy_id, **result}
 
 
 @app.post('/api/securities/types', response_model=SecurityTypesOut)

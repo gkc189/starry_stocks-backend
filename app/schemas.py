@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class StrategyOut(BaseModel):
@@ -31,14 +31,6 @@ class UpdateDteBucketsRequest(BaseModel):
     buckets: list[list[int]]
 
 
-class MaxDteOut(BaseModel):
-    max_dte: int
-
-
-class UpdateMaxDteRequest(BaseModel):
-    max_dte: int
-
-
 class StrategyConfigsOut(BaseModel):
     strategy: str
     configs: list[str]
@@ -51,6 +43,30 @@ class CreateStrategyConfigRequest(BaseModel):
 
 class SelectStrategyConfigRequest(BaseModel):
     name: str
+
+
+class DeltaRange(BaseModel):
+    min: float = Field(ge=0.0, le=1.0)
+    max: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode='after')
+    def check_range(self):
+        if self.min > self.max:
+            raise ValueError('delta range min must be <= max.')
+        return self
+
+
+class StrategyFiltersOut(BaseModel):
+    strategy: str
+    use_scoring: bool
+    delta_range: DeltaRange
+    risk_reward_min: float
+
+
+class UpdateStrategyFiltersRequest(BaseModel):
+    use_scoring: bool
+    delta_range: DeltaRange
+    risk_reward_min: float = Field(ge=0.01, le=1.0)
 
 
 class SecurityTypesRequest(BaseModel):
@@ -75,7 +91,9 @@ class ScoredOptionOut(BaseModel):
     bid: float
     iv: float
     open_interest: int
-    score: float
+    delta: float
+    risk_reward: float
+    score: Optional[float]
     bucket: str
 
 
@@ -86,7 +104,7 @@ class SellPutsScanOut(BaseModel):
 
 
 class ScoredSpreadOut(BaseModel):
-    score: float
+    score: Optional[float]
     ticker: str
     short_strike: float
     long_strike: float

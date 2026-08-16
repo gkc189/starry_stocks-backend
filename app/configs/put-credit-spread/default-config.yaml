@@ -1,7 +1,11 @@
 name: Default-Config
+filters:
+  use-scoring: false
+  delta-short-leg:
+    min: 0.2
+    max: 0.32
+  risk-reward: 0.32
 max_spreads_per_ticker: 5
-delta_min: 0.2
-delta_max: 0.35
 spread_min: 2.0
 spread_max: 5.0
 scoring:
@@ -20,3 +24,6 @@ search_set:
 - SLV
 - XOM
 - ^XSP
+- SPYI
+- MSFT
+- ^SPX

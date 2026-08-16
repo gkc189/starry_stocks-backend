@@ -146,20 +146,44 @@ def set_dte_buckets(buckets: list[list[int]]) -> list[list[int]]:
     return buckets
 
 
-DEFAULT_PUT_CREDIT_SPREAD_MAX_DTE = 60
+# The "delta" hard filter is named differently per strategy (a plain delta band
+# for sell-puts vs. the short leg's delta band for a credit spread), so the API
+# exposes it uniformly as `delta_range` and this maps that back to the YAML key.
+FILTER_DELTA_RANGE_KEYS: dict[str, str] = {
+    'sell-puts': 'delta',
+    'put-credit-spread': 'delta-short-leg',
+}
+
+DEFAULT_DELTA_RANGE = {'min': 0.0, 'max': 1.0}
+DEFAULT_USE_SCORING = True
+DEFAULT_RISK_REWARD_MIN = 0.01
 
 
-def get_put_credit_spread_max_dte() -> int:
-    config = load_config(str(_selected_config_path('put-credit-spread')))
-    return config.get('max_dte', DEFAULT_PUT_CREDIT_SPREAD_MAX_DTE)
+def get_strategy_filters(strategy_id: str) -> dict:
+    """Returns the strategy's currently selected config's hard filters, defaults filled in."""
+    config = load_config(str(_selected_config_path(strategy_id)))
+    filters = config.get('filters', {})
+    range_key = FILTER_DELTA_RANGE_KEYS[strategy_id]
+
+    return {
+        'use_scoring': filters.get('use-scoring', DEFAULT_USE_SCORING),
+        'delta_range': {**DEFAULT_DELTA_RANGE, **filters.get(range_key, {})},
+        'risk_reward_min': filters.get('risk-reward', DEFAULT_RISK_REWARD_MIN),
+    }
 
 
-def set_put_credit_spread_max_dte(max_dte: int) -> int:
-    config_path = str(_selected_config_path('put-credit-spread'))
+def set_strategy_filters(strategy_id: str, use_scoring: bool, delta_range: dict, risk_reward_min: float) -> dict:
+    config_path = str(_selected_config_path(strategy_id))
     config = load_config(config_path)
-    config['max_dte'] = max_dte
+    range_key = FILTER_DELTA_RANGE_KEYS[strategy_id]
+
+    config['filters'] = {
+        'use-scoring': use_scoring,
+        range_key: {'min': delta_range['min'], 'max': delta_range['max']},
+        'risk-reward': risk_reward_min,
+    }
     save_config(config, config_path)
-    return max_dte
+    return get_strategy_filters(strategy_id)
 
 
 def get_sell_puts_config() -> dict:
